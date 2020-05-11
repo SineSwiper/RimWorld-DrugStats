@@ -57,6 +57,10 @@
   <Stat_MTB_Hediff>Interval until {HEDIFF_label} (avg)</Stat_MTB_Hediff>
   <Stat_CanCause_Hediff>Can cause {HEDIFF_label}</Stat_CanCause_Hediff>
 
+  <Thoughts>Thoughts</Thoughts>
+  <Stat_Thought_MoodEffect>{0} mood</Stat_Thought_MoodEffect>
+  <Stat_Thought_OpinionOffset>{0} opinion</Stat_Thought_OpinionOffset>
+
   <!-- Drug Addiction -->
 
   <!-- Stat_Thing_Drug_Addictiveness -->

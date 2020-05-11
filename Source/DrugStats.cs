@@ -345,10 +345,13 @@ namespace DrugStats {
             );
         }
 
+        // TODO: Document ThoughtDefs
         public static StatDrawEntry FindHediffRisks (HediffDef hediff, string labelKey, StatCategoryDef category, int displayOffset = 0) {
             var riskKeys    = new List<string> {};
             var riskReports = new List<string> {};
             riskReports.Add(("Stat_Thing_Drug_" + labelKey + "_Desc").Translate());
+
+            var hyperlinks = new List<Dialog_InfoCard.Hyperlink> { new Dialog_InfoCard.Hyperlink(hediff) };
 
             if (!hediff.everCurableByItem) {
                 string incurable = "Incurable".Translate();
@@ -389,6 +392,28 @@ namespace DrugStats {
                 }
             }
 
+            // Report on thoughts tied to the hediff
+            string thoughtsReport = "";  // keep it empty to check later
+            foreach (ThoughtDef thought in DefDatabase<ThoughtDef>.AllDefs.Where(td => td.hediff == hediff)) {
+                foreach (ThoughtStage stage in thought.stages) {
+                    if (thought.stages.Count > 1 && (stage.label.NullOrEmpty() || !stage.visible)) continue;
+
+                    string label = stage.label.NullOrEmpty() ? (string)thought.LabelCap : stage.LabelCap;
+
+                    var effects = new List<string> {};
+                    if (stage.baseMoodEffect    != 0) effects.Add( "Stat_Thought_MoodEffect"   .Translate( ((int)stage.baseMoodEffect   ).ToStringWithSign() ) );
+                    if (stage.baseOpinionOffset != 0) effects.Add( "Stat_Thought_OpinionOffset".Translate( ((int)stage.baseOpinionOffset).ToStringWithSign() ) );
+
+                    thoughtsReport += "    " + label + ": " + GenText.ToCommaList(effects) + "\n";
+                }
+            }
+
+            if (!thoughtsReport.NullOrEmpty()) {
+                riskKeys.Add("Thoughts".Translate());
+                thoughtsReport = "Thoughts".Translate() + ":\n" + thoughtsReport.Trim('\n');
+                riskReports.Add(thoughtsReport);
+            }
+
             if (!hediff.hediffGivers.NullOrEmpty()) {
                 string report = "";
                 foreach (HediffGiver hediffGiver in hediff.hediffGivers) {
@@ -408,7 +433,7 @@ namespace DrugStats {
                 label:       ("Stat_Thing_Drug_" + labelKey + "_Name").Translate(),
                 reportText:  string.Join("\n\n", riskReports),
                 valueString: riskKeys.Count == 0 ? (string)"None".Translate() : GenText.ToCommaList(riskKeys),
-                hyperlinks: new List<Dialog_InfoCard.Hyperlink> { new Dialog_InfoCard.Hyperlink(hediff) },
+                hyperlinks:  hyperlinks,
                 displayPriorityWithinCategory: displayOffset + 50
             );
         }
