@@ -232,8 +232,7 @@ namespace DrugStats {
             yield return FindHediffRisks(overdoseHediff, "OverdoseRisks", category, 2300);
         }
 
-        // TODO: Document ThoughtDefs
-        public static StatDrawEntry FindHediffRisks (HediffDef hediff, string labelKey, StatCategoryDef category, int displayOffset = 0) {
+        public static StatDrawEntry FindHediffRisks (HediffDef hediff, string labelKey, StatCategoryDef category, int displayPriority = 2000) {
             var riskKeys    = new List<string> {};
             var riskReports = new List<string> {};
             riskReports.Add(("Stat_Thing_Drug_" + labelKey + "_Desc").Translate());
@@ -319,9 +318,9 @@ namespace DrugStats {
                 category:    category,
                 label:       ("Stat_Thing_Drug_" + labelKey + "_Name").Translate(),
                 reportText:  string.Join("\n\n", riskReports),
-                valueString: riskKeys.Count == 0 ? (string)"None".Translate() : GenText.ToCommaList(riskKeys),
+                valueString: riskKeys.Count == 0 ? "None".Translate() : GenText.ToCommaList(riskKeys),
                 hyperlinks:  hyperlinks,
-                displayPriorityWithinCategory: displayOffset + 50
+                displayPriorityWithinCategory: displayPriority
             );
         }
 
@@ -338,7 +337,17 @@ namespace DrugStats {
                 return "Stat_MTB_Hediff".Translate(hg_r.hediff.Named("HEDIFF")) + ": " + ToStringDaysToPeriod(hg_r.mtbDays);
             }
             else if (hediffGiver is HediffGiver_RandomDrugEffect hg_rde) {
-                return "Stat_MTB_Hediff".Translate(hg_rde.hediff.Named("HEDIFF")) + ": " + ToStringDaysToPeriod(hg_rde.baseMtbDays);
+                if      (hg_rde.baseMtbDays > 0)
+                    return "Stat_MTB_Hediff".Translate(hg_rde.hediff.Named("HEDIFF")) + ": " + ToStringDaysToPeriod(hg_rde.baseMtbDays);
+
+                else if (hg_rde.severityToMtbDaysCurve is SimpleCurve curve) {
+                    StringBuilder sb = new();
+                    sb.AppendLine( "Stat_MTB_Hediff".Translate(hg_rde.hediff.Named("HEDIFF")) + ": " );
+                    foreach (CurvePoint point in curve.Points) {
+                        sb.AppendLine("    " + point.x.ToStringPercent() + ": " + (point.y > 0 && point.y < 35000 ? ToStringDaysToPeriod(point.y) : "Never".Translate()) );
+                    }
+                    return sb.ToString();
+                }
             }
 
             return "Stat_CanCause_Hediff".Translate(hediffGiver.hediff.Named("HEDIFF"));
