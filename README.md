@@ -8,13 +8,13 @@ Furthermore, this takes the pain out of manually creating a drug policy for hund
 
 # Features
 
-* Adds a ton of statistics for each drug, available on the drug information dialog
+* Adds even more statistics for each drug, available on the drug information dialog
 * Information can be used for populating drug policies, managing addictions, or figuring out the dangers before taking them
 * Compatible with any mod that adds new drugs and medicines
-* Add a new automated drug policy that can be used as-is, or as a template to copy
+* Add a new automated drug policy (called "Responsible (Auto)") that can be used as-is, or as a template to copy
 
 # History
 
-This mod started out in RimWorld v1.0 as full drug stats system called "Drug Stats".  A month or so after it was released, Tynan added the vanilla drug stats into v1.1, as prep for the Royalty DLC.  It had a lot of similar stats, so I retired this mod to prevent any conflicts.
+This mod started out in RimWorld v1.1 as full drug stats system called "Drug Stats".  Only a few weeks after it was released, Tynan added the vanilla drug stats into the May 2020 update.  It had a lot of similar stats, so I retired this mod to prevent any conflicts.
 
 Two years later, we're in the middle of v1.3, and I still thought there was a lot of useful data to expose here.  So, I reworked the code to play nice with the vanilla stats, moved some stats and sections around a bit, fixed a few minor bugs, and added the automated drug policy.  It is now called "More Drug Stats".
