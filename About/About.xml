@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ModMetaData>
 	<packageId>SineSwiper.DrugStats</packageId>
-    <name>Drug Stats</name>
+    <name>More Drug Stats</name>
     <author>SineSwiper</author>
     <url>https://github.com/SineSwiper/RimWorld-DrugStats</url>
     <supportedVersions>
         <li>1.1</li>
+        <li>1.3</li>
     </supportedVersions>
 	<modDependencies>
 		<li>
@@ -17,5 +18,7 @@
 	</modDependencies>
 <description>So, you've started a new game with your 250+ mods and you're stuck on the Drug Policy screen again.  Vanilla RimWorld already has its numerous nuiances with how its drugs interact, but now you have various alcohols, social drugs, medicines, combat drugs, etc. loaded in.  Most of the drug descriptions don't really tell you enough information.  You have no idea how to set up your drug policies without experimenting with these hundred or so drugs, scanning the wikis for information, or digging into the XML to figure out how they work.  Surely your pawns in RimWorld's future have some form of the Internet to figure this information out already, right?
 
-Drug Stats makes this effort a lot easier by exposing most of the critical statistics you need to make educated decisions on the various drugs in RimWorld and your mod lists.  Figure out what kinds of drugs they are, their tolerances/addiction/overdose thresholds, benefits/risks, and the ever-important "Safe Dose Interval" to use in making drug policies.</description>
+More Drug Stats makes this effort a lot easier by adding even more drug stats than what's in vanilla, exposing most of the critical statistics you need to make educated decisions on the various drugs in RimWorld and your mod lists.  Figure out what kinds of drugs they are, their tolerances/addiction/overdose thresholds, benefits/risks, all in an organized matter.
+
+Furthermore, this takes the pain out of manually creating a drug policy for hundreds of drugs by creating an automated and sane template, based on their stats.</description>
 </ModMetaData>
