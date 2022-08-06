@@ -57,6 +57,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DrugPolicyMaker.cs" />
     <Compile Include="DrugStats.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
