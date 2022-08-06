@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+
+    <!-- Change displayOrder of DrugAddiction -->
+	<Operation Class="PatchOperationReplace">
+        <xpath>/Defs/StatCategoryDef[defName="DrugAddiction"]/displayOrder/text()</xpath>
+        <value>50</value>
+	</Operation>
+
+</Patch>

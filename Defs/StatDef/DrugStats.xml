@@ -2,27 +2,15 @@
 <Defs>
 
   <StatCategoryDef>
-    <defName>Drug</defName>
-    <label>Drug</label>
-    <displayOrder>35</displayOrder>
-  </StatCategoryDef>
-
-  <StatCategoryDef>
     <defName>DrugTolerance</defName>
     <label>Drug tolerance</label>
-    <displayOrder>36</displayOrder>
-  </StatCategoryDef>
-
-  <StatCategoryDef>
-    <defName>DrugAddiction</defName>
-    <label>Drug addiction</label>
-    <displayOrder>37</displayOrder>
+    <displayOrder>40</displayOrder>
   </StatCategoryDef>
 
   <StatCategoryDef>
     <defName>DrugOverdose</defName>
     <label>Drug overdose</label>
-    <displayOrder>38</displayOrder>
+    <displayOrder>60</displayOrder>
   </StatCategoryDef>
 
 </Defs>
