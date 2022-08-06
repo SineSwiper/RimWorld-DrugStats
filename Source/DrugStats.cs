@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using Verse;
 
@@ -19,6 +21,46 @@ namespace DrugStats {
 
     [StaticConstructorOnStartup]
     public class Base {
+        public static FieldInfo StatDrawEntry_displayOrderWithinCategory_Field;
+        public static FieldInfo StatDrawEntry_value_Field;
+
+        public static bool TweakExistingStatDrawEntriesForDrugs(StatDrawEntry statDrawEntry, ThingDef drug) {
+            // [Reflection prep] statDrawEntry.displayOrderWithinCategory / value
+            if (StatDrawEntry_displayOrderWithinCategory_Field == null) {
+                StatDrawEntry_displayOrderWithinCategory_Field = AccessTools.Field(typeof(StatDrawEntry), "displayOrderWithinCategory");
+                StatDrawEntry_value_Field                      = AccessTools.Field(typeof(StatDrawEntry), "value");
+            }
+
+            string label = statDrawEntry.LabelCap;
+            foreach (string checkKey in new[] {
+                "ToleranceGain", "ToleranceFallRate", "MinimumToleranceForAddiction", "Addictiveness", "RandomODChance", "SafeDoseInterval", "Joy"
+            }) {
+                string checkLabel = checkKey.Translate().CapitalizeFirst();
+                if (label != checkLabel) continue;
+
+                // Move things over to DrugTolerance
+                if      (Regex.IsMatch(checkKey, "^(?:Minimum)?Tolerance|^Addictiveness$")) {
+                    statDrawEntry.category = StatCategoryDefOf.DrugTolerance;
+                    // don't report if there isn't tolerance gain
+                    if (DrugStatsUtility.GetToleranceGain(drug) == 0f) return false;
+                }
+                // Or DrugOverdose
+                else if (checkKey == "RandomODChance") {
+                    statDrawEntry.category = StatCategoryDefOf.DrugOverdose;
+                    // don't report if it's zero
+                    if ((float)StatDrawEntry_value_Field.GetValue(statDrawEntry) == 0) return false;
+                }
+                // Move SafeDoseInterval up, right after Chemical
+                else if (checkKey == "SafeDoseInterval") {
+                    StatDrawEntry_displayOrderWithinCategory_Field.SetValue(statDrawEntry, 2484);
+                }
+                else if (checkKey == "Joy") {
+                    statDrawEntry.category = StatCategoryDefOf.CapacityEffects;
+                }
+            }
+
+            return true;
+        }
 
         public static IEnumerable<StatDrawEntry> SpecialDisplayStatsForDrug (ThingDef drug) {
             CompProperties_Drug comp = DrugStatsUtility.GetDrugComp(drug);
@@ -303,6 +345,7 @@ namespace DrugStats {
         }
     }
 
+    [HarmonyPatch]
     [StaticConstructorOnStartup]
     public class HarmonyPatches {
         static HarmonyPatches() {
@@ -310,21 +353,84 @@ namespace DrugStats {
             Log.Message("[DrugStats] Harmony patches complete");
         }
 
-        // Override the CompProperties_Drug.SpecialDisplayStats method to display our own stats.
-        [HarmonyPatch(typeof(CompProperties_Drug), "SpecialDisplayStats")]
-        private static class SpecialDisplayStatsPatch {
-            [HarmonyPostfix]
-            static IEnumerable<StatDrawEntry> Postfix(IEnumerable<StatDrawEntry> values, CompProperties_Drug __instance, StatRequest req) {
-                // Cycle through the entries
-                string addictivenessCap = "Addictiveness".Translate().CapitalizeFirst();
-                foreach (StatDrawEntry value in values) {
-                    // Return all of them except for Addictiveness (the one stat CompProperties_Drug adds)
-                    if (value.LabelCap != addictivenessCap) yield return value;
-                }
+        // Override the CompProperties_Drug.SpecialDisplayStats method to display our own stats
+        [HarmonyPatch(typeof(DrugStatsUtility), nameof(DrugStatsUtility.SpecialDisplayStats))]
+        [HarmonyPostfix]
+        private static IEnumerable<StatDrawEntry> DrugStatsUtility_SpecialDisplayStats_Postfix (IEnumerable<StatDrawEntry> values, ThingDef def) {
+            // Cycle through the entries, and tweak certain ones
+            foreach (StatDrawEntry value in values) {
+                if (!Base.TweakExistingStatDrawEntriesForDrugs(value, def)) continue;
+                yield return value;
+            }
 
-                foreach (StatDrawEntry value in Base.SpecialDisplayStatsForDrugs(__instance, req)) yield return value;
+            foreach (StatDrawEntry value in Base.SpecialDisplayStatsForDrug(def)) yield return value;
+        }
+
+        // Tweak StatCategories in IngestibleProperties.SpecialDisplayStats
+        [HarmonyPatch(typeof(IngestibleProperties), "SpecialDisplayStats")]
+        [HarmonyPostfix]
+        private static IEnumerable<StatDrawEntry> IngestibleProperties_SpecialDisplayStats_Postfix (IEnumerable<StatDrawEntry> values, IngestibleProperties __instance) {
+            ThingDef def = __instance.parent;
+
+            // Cycle through the entries, and tweak certain ones
+            foreach (StatDrawEntry value in values) {
+                if (def.IsDrug && !Base.TweakExistingStatDrawEntriesForDrugs(value, def)) continue;
+                yield return value;
             }
         }
 
+        // Move all IngestionOutcomeDoer_OffsetNeed.SpecialDisplayStats to Effects
+        [HarmonyPatch(typeof(IngestionOutcomeDoer_OffsetNeed), nameof(IngestionOutcomeDoer_OffsetNeed.SpecialDisplayStats))]
+        [HarmonyPostfix]
+        private static IEnumerable<StatDrawEntry> IngestionOutcomeDoer_OffsetNeed_SpecialDisplayStats_Postfix (IEnumerable<StatDrawEntry> values) {
+            // Cycle through the entries, and move all StatCategories
+            foreach (StatDrawEntry value in values) {
+                value.category = StatCategoryDefOf.CapacityEffects;
+                yield return value;
+            }
+        }
+
+        // Ditto for Psyfocus
+        [HarmonyPatch(typeof(IngestionOutcomeDoer_OffsetPsyfocus), nameof(IngestionOutcomeDoer_OffsetPsyfocus.SpecialDisplayStats))]
+        [HarmonyPostfix]
+        private static IEnumerable<StatDrawEntry> IngestionOutcomeDoer_OffsetPsyfocus_SpecialDisplayStats_Postfix (IEnumerable<StatDrawEntry> values) {
+            // Cycle through the entries, and move all StatCategories
+            foreach (StatDrawEntry value in values) {
+                value.category = StatCategoryDefOf.CapacityEffects;
+                yield return value;
+            }
+        }
+
+        // Additional checks in GetSafeDoseInterval
+        [HarmonyPatch(typeof(DrugStatsUtility), nameof(DrugStatsUtility.GetSafeDoseInterval))]
+        [HarmonyPostfix]
+        private static void GetSafeDoseInterval_Postfix (ThingDef d, ref float __result) {
+            // Add check for largeOverdoseChance
+            CompProperties_Drug drugComp = DrugStatsUtility.GetDrugComp(d);
+            if (drugComp != null && drugComp.largeOverdoseChance > 0f) __result = -1f;
+
+            // This is in GetSafeDoseIntervalReadout (as the partial dose check), but it should really be checked here
+            IngestionOutcomeDoer_GiveHediff toleranceGiver = DrugStatsUtility.GetToleranceGiver(d);
+            float addictSeverityRatio = toleranceGiver != null ? drugComp.minToleranceToAddict / toleranceGiver.severity : 0.0f;
+            if (addictSeverityRatio != 0f && addictSeverityRatio < 1f) __result = -1f;
+        }
+
+        // Override to make GetSafeDoseIntervalReadout simpler
+        [HarmonyPatch(typeof(DrugStatsUtility), nameof(DrugStatsUtility.GetSafeDoseIntervalReadout))]
+        [HarmonyPrefix]
+        private static bool GetSafeDoseIntervalReadout_Override (ThingDef d, ref string __result) {
+            float safeDoseInterval = DrugStatsUtility.GetSafeDoseInterval(d);
+
+            __result =
+                safeDoseInterval ==  0f ? "AlwaysSafe".Translate() :
+                safeDoseInterval == -1f ?  "NeverSafe".Translate() :
+                "PeriodDays".Translate(safeDoseInterval.ToString("F1"))
+            ;
+
+            // Never use the original method
+            return false;
+        }
+
+        // TODO: Port FindHediffRisks over to Xenobionic Patcher
     }
 }
