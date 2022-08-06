@@ -3,44 +3,18 @@
 
   <!-- Basic Drug Info -->
 
-  <Stat_Thing_Drug_Category_Name>Drug category</Stat_Thing_Drug_Category_Name>
-  <Stat_Thing_Drug_Category_Desc>A general level of severity of the drug.</Stat_Thing_Drug_Category_Desc>
-
-  <DrugCategory_None>None</DrugCategory_None>
-  <DrugCategory_Medical>Medical</DrugCategory_Medical>
-  <DrugCategory_Social>Social</DrugCategory_Social>
-  <DrugCategory_Hard>Hard</DrugCategory_Hard>
-  <DrugCategory_Any>Any</DrugCategory_Any>
-
-  <Stat_Thing_Drug_Chemical_Name>Addictive chemical</Stat_Thing_Drug_Chemical_Name>
-  <Stat_Thing_Drug_Chemical_Desc>The active addictive ingredient in the drug. Different drugs that use the same chemical will be tied to the same tolerances and addictions.</Stat_Thing_Drug_Chemical_Desc>
-
-  <Stat_Thing_Drug_SafeDoseInterval_Name>Safe dose interval</Stat_Thing_Drug_SafeDoseInterval_Name>
-  <Stat_Thing_Drug_SafeDoseInterval_Desc>The period of time that needs to pass before it's safe enough (ie: no risk of addiction or overdose) to take another dose. Not all drugs have safe doses.</Stat_Thing_Drug_SafeDoseInterval_Desc>
-
-  <Always>Always</Always>
-
-  <Stat_Thing_Drug_CombatEnhancingDrug_Name>Combat enhancing drug</Stat_Thing_Drug_CombatEnhancingDrug_Name>
-  <Stat_Thing_Drug_CombatEnhancingDrug_Desc>Whether this is the kind of drug pawns will use to enhance their skills during combat.</Stat_Thing_Drug_CombatEnhancingDrug_Desc>
+  <Stat_Thing_Drug_CombatEnhancingDrug_Name>Combat-enhancing drug</Stat_Thing_Drug_CombatEnhancingDrug_Name>
+  <Stat_Thing_Drug_CombatEnhancingDrug_Desc>Whether this is the kind of drug NPCs (such as raiders) will use to enhance their skills during combat.</Stat_Thing_Drug_CombatEnhancingDrug_Desc>
 
   <Stat_Thing_Drug_HighBenefitsRisks_Name>High benefits/risks</Stat_Thing_Drug_HighBenefitsRisks_Name>
   <Stat_Thing_Drug_HighBenefitsRisks_Desc>The list of benefits/risks associated with the drug high, just from taking a dose.</Stat_Thing_Drug_HighBenefitsRisks_Desc>
 
   <!-- Drug Tolerance -->
 
-  <Stat_Thing_Drug_ToleranceForUsing_Name>Tolerance for using</Stat_Thing_Drug_ToleranceForUsing_Name>
-  <Stat_Thing_Drug_ToleranceForUsing_Desc>The tolerance level given each time the drug is used.</Stat_Thing_Drug_ToleranceForUsing_Desc>
-
   <Stat_Thing_Drug_SeverityUsesBodySize_Name>Severity affected by body size</Stat_Thing_Drug_SeverityUsesBodySize_Name>
   <Stat_Thing_Drug_SeverityUsesBodySize_Desc>Whether the severity of the drug is affected by body size. For example, a small dog will get blackout drunk from beer much quicker than an elephant.</Stat_Thing_Drug_SeverityUsesBodySize_Desc>
 
-  <Stat_Thing_Drug_MinToleranceToAddict_Name>Minimum tolerance to addict</Stat_Thing_Drug_MinToleranceToAddict_Name>
-  <Stat_Thing_Drug_MinToleranceToAddict_Desc>The minimum tolerance level before addiction chances start.</Stat_Thing_Drug_MinToleranceToAddict_Desc>
-
-  <Stat_Thing_Drug_ToleranceDecay_Name>Tolerance decay per day</Stat_Thing_Drug_ToleranceDecay_Name>
-  <Stat_Thing_Drug_ToleranceDecay_Desc>The amount of tolerance removed each day.</Stat_Thing_Drug_ToleranceDecay_Desc>
-
-  <Stat_Thing_Drug_DosagesBeforeAddiction_Name>Doses before addiction</Stat_Thing_Drug_DosagesBeforeAddiction_Name>
+  <Stat_Thing_Drug_DosagesBeforeAddiction_Name>Doses before addiction chance</Stat_Thing_Drug_DosagesBeforeAddiction_Name>
   <Stat_Thing_Drug_DosagesBeforeAddiction_Desc>The minimum number of consecutive doses before addiction chances start.</Stat_Thing_Drug_DosagesBeforeAddiction_Desc>
 
   <Stat_Thing_Drug_ToleranceRisks_Name>Tolerance risks</Stat_Thing_Drug_ToleranceRisks_Name>
@@ -65,28 +39,19 @@
 
   <!-- Stat_Thing_Drug_Addictiveness -->
 
-  <Stat_Thing_Drug_AddictionDecay_Name>Addiction decay per day</Stat_Thing_Drug_AddictionDecay_Name>
-  <Stat_Thing_Drug_AddictionDecay_Desc>The amount of addiction severity removed each day.</Stat_Thing_Drug_AddictionDecay_Desc>
-
-  <Stat_Thing_Drug_TimeToShakeAddiction_Name>Time to shake addiction</Stat_Thing_Drug_TimeToShakeAddiction_Name>
-  <Stat_Thing_Drug_TimeToShakeAddiction_Desc>The full period of time required to shake off an addiction, if no other doses are taken.</Stat_Thing_Drug_TimeToShakeAddiction_Desc>
-
   <Stat_Thing_Drug_AddictionRisks_Name>Addiction risks</Stat_Thing_Drug_AddictionRisks_Name>
   <Stat_Thing_Drug_AddictionRisks_Desc>The list of risks associated with addiction.</Stat_Thing_Drug_AddictionRisks_Desc>
 
   <!-- Drug Overdose -->
 
-  <Stat_Thing_Drug_OverdoseForUsing_Name>Overdose severity for using</Stat_Thing_Drug_OverdoseForUsing_Name>
-  <Stat_Thing_Drug_OverdoseForUsing_Desc>The overdose level given each time the drug is used.</Stat_Thing_Drug_OverdoseForUsing_Desc>
+  <Stat_Thing_Drug_OverdoseGainPerDose_Name>Overdose gain per dose</Stat_Thing_Drug_OverdoseGainPerDose_Name>
+  <Stat_Thing_Drug_OverdoseGainPerDose_Desc>The overdose level given each time the drug is used. Note that the overdose severity level is shared among other drugs that have the potential to overdose.</Stat_Thing_Drug_OverdoseGainPerDose_Desc>
 
   <Stat_Thing_Drug_OverdoseSeverityLevels_Name>Overdose severity levels</Stat_Thing_Drug_OverdoseSeverityLevels_Name>
   <Stat_Thing_Drug_OverdoseSeverityLevels_Desc>The overdose levels for a minor, major, and fatal overdose, respectively.</Stat_Thing_Drug_OverdoseSeverityLevels_Desc>
 
-  <Stat_Thing_Drug_OverdoseDecay_Name>Overdose decay per day</Stat_Thing_Drug_OverdoseDecay_Name>
-  <Stat_Thing_Drug_OverdoseDecay_Desc>The amount of overdose severity removed each day.</Stat_Thing_Drug_OverdoseDecay_Desc>
-
-  <Stat_Thing_Drug_LargeOverdoseChance_Name>Large overdose chance</Stat_Thing_Drug_LargeOverdoseChance_Name>
-  <Stat_Thing_Drug_LargeOverdoseChance_Desc>The chance that a large overdose could happen, regardless of the current severity.</Stat_Thing_Drug_LargeOverdoseChance_Desc>
+  <Stat_Thing_Drug_OverdoseFallRate_Name>Overdose fall rate</Stat_Thing_Drug_OverdoseFallRate_Name>
+  <Stat_Thing_Drug_OverdoseFallRate_Desc>The amount of overdose severity removed each day.</Stat_Thing_Drug_OverdoseFallRate_Desc>
 
   <Stat_Thing_Drug_DosagesBeforeOverdose_Name>Doses before overdose</Stat_Thing_Drug_DosagesBeforeOverdose_Name>
   <Stat_Thing_Drug_DosagesBeforeOverdose_Desc>The minimum number of consecutive doses before overdoses can happen.</Stat_Thing_Drug_DosagesBeforeOverdose_Desc>

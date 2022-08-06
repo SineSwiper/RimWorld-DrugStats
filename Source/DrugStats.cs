@@ -8,86 +8,53 @@ using UnityEngine;
 using Verse;
 
 namespace DrugStats {
+    [DefOf]
+    public static class StatCategoryDefOf {
+        public static StatCategoryDef Drug;
+        public static StatCategoryDef DrugTolerance;
+        public static StatCategoryDef DrugAddiction;
+        public static StatCategoryDef DrugOverdose;
+        public static StatCategoryDef CapacityEffects;
+    }
 
     [StaticConstructorOnStartup]
     public class Base {
-        // Caches
-        static bool?  drugNotSafe              = null;
-        static float? daysPerSafeDoseAddiction = null;
-        static float? daysPerSafeDoseOverdose  = null;
 
-        public static IEnumerable<StatDrawEntry> SpecialDisplayStatsForDrugs(CompProperties_Drug comp, StatRequest req) {
-            // Variable prep
-            ThingDef thingDef = (ThingDef)req.Def;
-            var categories = new Dictionary <string, StatCategoryDef> {};
-            foreach (string name in new List<string> { "Drug", "DrugTolerance", "DrugAddiction", "DrugOverdose" }) {
-                categories.Add(name, DefDatabase<StatCategoryDef>.GetNamed(name));
-            }
-
-            // Multiple CompProperties_Drugs might exist, so set up the display priorities properly
-            int compIndex     = thingDef.comps.IndexOf(comp);
-            int displayOffset = (thingDef.comps.Count - compIndex) * 100;
+        public static IEnumerable<StatDrawEntry> SpecialDisplayStatsForDrug (ThingDef drug) {
+            CompProperties_Drug comp = DrugStatsUtility.GetDrugComp(drug);
+            if (comp == null) yield break;
 
             // This is probably a mistake, so don't report it.  (CuproPanda's Drinks does this for some reason.)
-            if (comp.chemical == null && thingDef.comps.Sum(cp => cp is CompProperties_Drug ? 1 : 0) > 1) yield break;
-
-            // Clear these out, just in case they weren't before
-            drugNotSafe              = null;
-            daysPerSafeDoseAddiction = null;
-            daysPerSafeDoseOverdose  = null;
+            if (comp.chemical == null) yield break;
 
             // Basic drug info
-            foreach (StatDrawEntry value in BasicDrugStats(comp, req, displayOffset)) yield return value;
+            foreach (StatDrawEntry value in BasicDrugStats(drug)) yield return value;
 
             // The rest
             if (comp.chemical != null) {
-                foreach (StatDrawEntry value in DrugToleranceStats(comp, req, displayOffset)) yield return value;
-                foreach (StatDrawEntry value in DrugAddictionStats(comp, req, displayOffset)) yield return value;
-                foreach (StatDrawEntry value in DrugOverdoseStats (comp, req, displayOffset)) yield return value;
+                foreach (StatDrawEntry value in DrugToleranceStats(drug)) yield return value;
+                foreach (StatDrawEntry value in DrugAddictionStats(drug)) yield return value;
+                foreach (StatDrawEntry value in DrugOverdoseStats (drug)) yield return value;
             }
-
-            yield return CalculateSafeDose(displayOffset);
-
-            // Clear these out before we go
-            drugNotSafe              = null;
-            daysPerSafeDoseAddiction = null;
-            daysPerSafeDoseOverdose  = null;
         }
 
-        public static IEnumerable<StatDrawEntry> BasicDrugStats(CompProperties_Drug comp, StatRequest req, int displayOffset = 0) {
-            ThingDef thingDef = (ThingDef)req.Def;
-            var category = DefDatabase<StatCategoryDef>.GetNamed("Drug");
+        public static IEnumerable<StatDrawEntry> BasicDrugStats (ThingDef drug) {
+            var category = StatCategoryDefOf.Drug;
+            CompProperties_Drug comp = DrugStatsUtility.GetDrugComp(drug);
             
-            HediffDef                       toleranceHediff  = comp.chemical?.toleranceHediff;
-            IngestionOutcomeDoer_GiveHediff highOutcomeDoer  = null;
+            IngestionOutcomeDoer_GiveHediff highOutcomeDoer  = DrugStatsUtility.GetDrugHighGiver(drug);
+            if (highOutcomeDoer != null) yield return FindHediffRisks(highOutcomeDoer.hediffDef, "HighBenefitsRisks", category, 2400);
 
-            highOutcomeDoer = (IngestionOutcomeDoer_GiveHediff)thingDef.ingestible.outcomeDoers.FirstOrFallback(
-                iod => iod is IngestionOutcomeDoer_GiveHediff iod_gh &&
-                iod_gh.hediffDef != null && (toleranceHediff == null || iod_gh.hediffDef != toleranceHediff) &&
-                iod_gh.severity > 0
-            );
-            if (highOutcomeDoer != null) {
-                yield return FindHediffRisks(highOutcomeDoer.hediffDef, "HighBenefitsRisks", category, displayOffset);
+            // DrugStatsUtility won't include this if it's not addictive
+            if (!comp.Addictive) {
+                yield return new StatDrawEntry(
+                    category:    category,
+                    label:       "Chemical".Translate(),
+                    reportText:  "Stat_Thing_Drug_Chemical_Desc".Translate(),
+                    valueString: comp.chemical.LabelCap,
+                    displayPriorityWithinCategory: 2490
+                );
             }
-
-            // Drug category
-            yield return new StatDrawEntry(
-                category:    category,
-                label:       "Stat_Thing_Drug_Category_Name".Translate(),
-                reportText:  "Stat_Thing_Drug_Category_Desc".Translate(),
-                valueString: ("DrugCategory_" + thingDef.ingestible.drugCategory).Translate(),
-                displayPriorityWithinCategory: displayOffset + 100
-            );
-            
-
-            // Chemical
-            yield return new StatDrawEntry(
-                category:    category,
-                label:       "Stat_Thing_Drug_Chemical_Name".Translate(),
-                reportText:  "Stat_Thing_Drug_Chemical_Desc".Translate(),
-                valueString: comp.chemical != null ? comp.chemical.LabelCap : "None".Translate(),
-                displayPriorityWithinCategory: displayOffset + 99
-            );
 
             // Combat enhancing drug
             yield return new StatDrawEntry(
@@ -95,38 +62,23 @@ namespace DrugStats {
                 label:       "Stat_Thing_Drug_CombatEnhancingDrug_Name".Translate(),
                 reportText:  "Stat_Thing_Drug_CombatEnhancingDrug_Desc".Translate(),
                 valueString: comp.isCombatEnhancingDrug.ToStringYesNo(),
-                displayPriorityWithinCategory: displayOffset + 60
+                displayPriorityWithinCategory: 2482
             );
         }
 
-        public static IEnumerable<StatDrawEntry> DrugToleranceStats(CompProperties_Drug comp, StatRequest req, int displayOffset = 0) {
-            ThingDef thingDef = (ThingDef)req.Def;
-            var category = DefDatabase<StatCategoryDef>.GetNamed("DrugTolerance");
+        public static IEnumerable<StatDrawEntry> DrugToleranceStats (ThingDef drug) {
+            var category = StatCategoryDefOf.DrugTolerance;
+            CompProperties_Drug comp = DrugStatsUtility.GetDrugComp(drug);
 
-            HediffDef                           toleranceHediff       = comp.chemical?.toleranceHediff;
-            IngestionOutcomeDoer_GiveHediff     toleranceOutcomeDoer  = null;
-            HediffCompProperties_SeverityPerDay toleranceSeverityComp = null;
+            // Nothing to report
+            if (DrugStatsUtility.GetToleranceGain(drug) == 0f) yield break;
 
-            if (toleranceHediff != null) {
-                toleranceOutcomeDoer = (IngestionOutcomeDoer_GiveHediff)thingDef.ingestible.outcomeDoers.FirstOrFallback(
-                    iod => iod is IngestionOutcomeDoer_GiveHediff iod_gh &&
-                    iod_gh.hediffDef != null && iod_gh.hediffDef == toleranceHediff
-                );
-                toleranceSeverityComp = (HediffCompProperties_SeverityPerDay)toleranceHediff.CompPropsFor(typeof(HediffComp_SeverityPerDay));
+            HediffDef                       toleranceHediff       = DrugStatsUtility.GetTolerance     (drug);
+            IngestionOutcomeDoer_GiveHediff toleranceOutcomeDoer  = DrugStatsUtility.GetToleranceGiver(drug);
 
-                yield return FindHediffRisks(toleranceHediff, "ToleranceRisks", category, displayOffset);
-            }
+            if (toleranceHediff != null) yield return FindHediffRisks(toleranceHediff, "ToleranceRisks", category, 2400);
 
             if (toleranceOutcomeDoer != null) {
-                // Tolerance for using
-                yield return new StatDrawEntry(
-                    category:    category,
-                    label:       "Stat_Thing_Drug_ToleranceForUsing_Name".Translate(),
-                    reportText:  "Stat_Thing_Drug_ToleranceForUsing_Desc".Translate(),
-                    valueString: toleranceOutcomeDoer.severity.ToStringPercent(),
-                    displayPriorityWithinCategory: displayOffset + 98
-                );
-
                 // [Reflection] toleranceOutcomeDoer.divideByBodySize
                 FieldInfo divideByBodySizeField = AccessTools.Field(typeof(IngestionOutcomeDoer_GiveHediff), "divideByBodySize");
                 bool divideByBodySize = (bool)divideByBodySizeField.GetValue(toleranceOutcomeDoer);
@@ -137,105 +89,39 @@ namespace DrugStats {
                     label:       "Stat_Thing_Drug_SeverityUsesBodySize_Name".Translate(),
                     reportText:  "Stat_Thing_Drug_SeverityUsesBodySize_Desc".Translate(),
                     valueString: divideByBodySize.ToStringYesNo(),
-                    displayPriorityWithinCategory: displayOffset + 97
+                    displayPriorityWithinCategory: 2439
                 );
-            }
 
-            // Minimum tolerance to addict
-            yield return new StatDrawEntry(
-                category:    category,
-                label:       "Stat_Thing_Drug_MinToleranceToAddict_Name".Translate(),
-                reportText:  "Stat_Thing_Drug_MinToleranceToAddict_Desc".Translate(),
-                valueString: comp.minToleranceToAddict.ToStringPercent(),
-                displayPriorityWithinCategory: displayOffset + 96
-            );
-            if (comp.minToleranceToAddict == 0f) drugNotSafe = true;
-
-            // Tolerance decay per day
-            if (toleranceSeverityComp != null) {
-                yield return new StatDrawEntry(
-                    category:    category,
-                    label:       "Stat_Thing_Drug_ToleranceDecay_Name".Translate(),
-                    reportText:  "Stat_Thing_Drug_ToleranceDecay_Desc".Translate(),
-                    valueString: toleranceSeverityComp.severityPerDay.ToStringPercent(),
-                    displayPriorityWithinCategory: displayOffset + 95
-                );
-            }
-
-            // Doses before addiction
-            if (toleranceOutcomeDoer != null) {
+                // Doses before addiction
                 float dosesBeforeAddiction = comp.minToleranceToAddict / toleranceOutcomeDoer.severity;
                 if (dosesBeforeAddiction <= 1f) dosesBeforeAddiction = 0;  // cannot take partial doses
-                drugNotSafe = drugNotSafe != null ?
-                    ((bool)drugNotSafe || dosesBeforeAddiction == 0f) :
-                    dosesBeforeAddiction == 0f
-                ;
 
                 yield return new StatDrawEntry(
                     category:    category,
                     label:       "Stat_Thing_Drug_DosagesBeforeAddiction_Name".Translate(),
                     reportText:  "Stat_Thing_Drug_DosagesBeforeAddiction_Desc".Translate(),
                     valueString: dosesBeforeAddiction.ToStringDecimalIfSmall(),
-                    displayPriorityWithinCategory: displayOffset + 94
+                    displayPriorityWithinCategory: 2426
                 );
-
-                if (toleranceSeverityComp != null) {
-                    daysPerSafeDoseAddiction = toleranceOutcomeDoer.severity / toleranceSeverityComp.severityPerDay * -1;
-                }
             }
         }
 
-        public static IEnumerable<StatDrawEntry> DrugAddictionStats(CompProperties_Drug comp, StatRequest req, int displayOffset = 0) {
-            ThingDef thingDef = (ThingDef)req.Def;
-            var category = DefDatabase<StatCategoryDef>.GetNamed("DrugAddiction");
-
-            HediffDef addictionHediff = comp.chemical?.addictionHediff;
-            NeedDef   addictionNeed   = addictionHediff?.causesNeed;
-            HediffCompProperties_SeverityPerDay addictionSeverityComp =
-                (HediffCompProperties_SeverityPerDay)addictionHediff?.CompPropsFor(typeof(HediffComp_SeverityPerDay))
-            ;
-
-            // Addictiveness
-            yield return new StatDrawEntry(
-                category:    category,
-                label:       "Addictiveness".Translate(),
-                reportText:  "Stat_Thing_Drug_Addictiveness_Desc".Translate(),
-                valueString: comp.addictiveness.ToStringPercent(),
-                displayPriorityWithinCategory: displayOffset + 99
-            );
-
-            if (addictionSeverityComp != null) {
-                // Addiction decay per day
-                yield return new StatDrawEntry(
-                    category:    category,
-                    label:       "Stat_Thing_Drug_AddictionDecay_Name".Translate(),
-                    reportText:  "Stat_Thing_Drug_AddictionDecay_Desc".Translate(),
-                    valueString: addictionSeverityComp.severityPerDay.ToStringPercent(),
-                    displayPriorityWithinCategory: displayOffset + 98
-                );
-
-                // Time to shake addiction
-                float daysToShakeAddiction = addictionHediff.initialSeverity / addictionSeverityComp.severityPerDay * -1;
-                yield return new StatDrawEntry(
-                    category:    category,
-                    label:       "Stat_Thing_Drug_TimeToShakeAddiction_Name".Translate(),
-                    reportText:  "Stat_Thing_Drug_TimeToShakeAddiction_Desc".Translate(),
-                    valueString: ToStringDaysToPeriod(daysToShakeAddiction),
-                    displayPriorityWithinCategory: displayOffset + 98
-                );
-            }
-
-            if (addictionHediff != null) {
-                yield return FindHediffRisks(addictionHediff, "AddictionRisks", category, displayOffset);
-            }
-        }
-
-        public static IEnumerable<StatDrawEntry> DrugOverdoseStats(CompProperties_Drug comp, StatRequest req, int displayOffset = 0) {
-            ThingDef thingDef = (ThingDef)req.Def;
-            var category = DefDatabase<StatCategoryDef>.GetNamed("DrugOverdose");
+        public static IEnumerable<StatDrawEntry> DrugAddictionStats (ThingDef drug) {
+            var category = StatCategoryDefOf.DrugAddiction;
 
             // Nothing to report
-            if (comp.overdoseSeverityOffset.TrueMax == 0f && comp.largeOverdoseChance == 0f) yield break;
+            if (!drug.IsAddictiveDrug) yield break;
+
+            HediffDef addictionHediff = DrugStatsUtility.GetChemical(drug)?.addictionHediff;
+            if (addictionHediff != null) yield return FindHediffRisks(addictionHediff, "AddictionRisks", category, 2400);
+        }
+
+        public static IEnumerable<StatDrawEntry> DrugOverdoseStats (ThingDef drug) {
+            var category = StatCategoryDefOf.DrugOverdose;
+            CompProperties_Drug comp = DrugStatsUtility.GetDrugComp(drug);
+
+            // Nothing to report
+            if (!comp.CanCauseOverdose && comp.largeOverdoseChance == 0f) yield break;
 
             HediffDef overdoseHediff = HediffDefOf.DrugOverdose;
 
@@ -246,13 +132,23 @@ namespace DrugStats {
                 // Overdose severity for using
                 yield return new StatDrawEntry(
                     category:    category,
-                    label:       "Stat_Thing_Drug_OverdoseForUsing_Name".Translate(),
-                    reportText:  "Stat_Thing_Drug_OverdoseForUsing_Desc".Translate(),
-                    valueString: string.Join(" - ",
+                    label:       "Stat_Thing_Drug_OverdoseGainPerDose_Name".Translate(),
+                    reportText:  "Stat_Thing_Drug_OverdoseGainPerDose_Desc".Translate(),
+                    valueString: "PerDay".Translate(string.Join(" ~ ",
                         comp.overdoseSeverityOffset.TrueMin.ToStringPercent(),
                         comp.overdoseSeverityOffset.TrueMax.ToStringPercent()
-                    ),
-                    displayPriorityWithinCategory: displayOffset + 99
+                    )),
+                    displayPriorityWithinCategory: 2370
+                );
+
+                // Overdose fall rate
+                HediffCompProperties_SeverityPerDay overdoseSeverityPerDay = overdoseHediff.CompProps<HediffCompProperties_SeverityPerDay>();
+                yield return new StatDrawEntry(
+                    category:    category,
+                    label:       "Stat_Thing_Drug_OverdoseFallRate_Name".Translate(),
+                    reportText:  "Stat_Thing_Drug_OverdoseFallRate_Desc".Translate(),
+                    valueString: "PerDay".Translate( Math.Abs(overdoseSeverityPerDay.severityPerDay).ToStringPercent() ),
+                    displayPriorityWithinCategory: 2360
                 );
 
                 // Severity affected by body size
@@ -261,7 +157,7 @@ namespace DrugStats {
                     label:       "Stat_Thing_Drug_SeverityUsesBodySize_Name".Translate(),
                     reportText:  "Stat_Thing_Drug_SeverityUsesBodySize_Desc".Translate(),
                     valueString: true.ToStringYesNo(),
-                    displayPriorityWithinCategory: displayOffset + 98
+                    displayPriorityWithinCategory: 2350
                 );
 
                 // Overdose severity levels
@@ -274,28 +170,7 @@ namespace DrugStats {
                         overdoseHediff.stages[2].minSeverity.ToStringPercent(),
                         overdoseHediff.lethalSeverity.ToStringPercent()
                     }),
-                    displayPriorityWithinCategory: displayOffset + 97
-                );
-
-                // Overdose decay per day
-                yield return new StatDrawEntry(
-                    category:    category,
-                    label:       "Stat_Thing_Drug_OverdoseDecay_Name".Translate(),
-                    reportText:  "Stat_Thing_Drug_OverdoseDecay_Desc".Translate(),
-                    // XXX: This is documented on the wiki, but I don't know where in the code...
-                    valueString: (-1f).ToStringPercent(),
-                    displayPriorityWithinCategory: displayOffset + 96
-                );
-            }
-
-            if (comp.largeOverdoseChance > 0f) {
-                // Large overdose chance
-                yield return new StatDrawEntry(
-                    category:    category,
-                    label:       "Stat_Thing_Drug_LargeOverdoseChance_Name".Translate(),
-                    reportText:  "Stat_Thing_Drug_LargeOverdoseChance_Desc".Translate(),
-                    valueString: comp.largeOverdoseChance.ToStringPercent(),
-                    displayPriorityWithinCategory: displayOffset + 95
+                    displayPriorityWithinCategory: 2340
                 );
             }
 
@@ -303,46 +178,16 @@ namespace DrugStats {
             float dosesBeforeOverdose = overdoseHediff.stages[1].minSeverity / comp.overdoseSeverityOffset.TrueMax;
             if (dosesBeforeOverdose <= 1f)     dosesBeforeOverdose = 0;  // cannot take partial doses
             if (comp.largeOverdoseChance > 0f) dosesBeforeOverdose = 0;  // cannot be considered safe with a large overdose chance
-            drugNotSafe = drugNotSafe != null ?
-                ((bool)drugNotSafe || dosesBeforeOverdose == 0f) :
-                dosesBeforeOverdose == 0f
-            ;
 
             yield return new StatDrawEntry(
                 category:    category,
                 label:       "Stat_Thing_Drug_DosagesBeforeOverdose_Name".Translate(),
                 reportText:  "Stat_Thing_Drug_DosagesBeforeOverdose_Desc".Translate(),
                 valueString: dosesBeforeOverdose.ToStringDecimalIfSmall(),
-                displayPriorityWithinCategory: displayOffset + 85
+                displayPriorityWithinCategory: 2330
             );
 
-            daysPerSafeDoseOverdose = comp.overdoseSeverityOffset.TrueMax;
-
-            yield return FindHediffRisks(overdoseHediff, "OverdoseRisks", category, displayOffset);
-        }
-
-        // TODO: Show math on CalculateSafeDose
-        public static StatDrawEntry CalculateSafeDose (int displayOffset = 0) {
-            var category = DefDatabase<StatCategoryDef>.GetNamed("Drug");
-
-            if (drugNotSafe == null) drugNotSafe = false;
-            float daysPerSafeDose = Mathf.Max(
-                daysPerSafeDoseAddiction ?? 0,
-                daysPerSafeDoseOverdose  ?? 0
-            );
-
-            // Time per safe dose
-            return new StatDrawEntry(
-                category:    category,
-                label:       "Stat_Thing_Drug_SafeDoseInterval_Name".Translate(),
-                reportText:  "Stat_Thing_Drug_SafeDoseInterval_Desc".Translate(),
-                valueString: (
-                    (bool)drugNotSafe     ? "None"  .Translate().ToString() :
-                    daysPerSafeDose == 0f ? "Always".Translate().ToString() :
-                    ToStringDaysToPeriod(daysPerSafeDose)
-                ),
-                displayPriorityWithinCategory: displayOffset + 90
-            );
+            yield return FindHediffRisks(overdoseHediff, "OverdoseRisks", category, 2300);
         }
 
         // TODO: Document ThoughtDefs
